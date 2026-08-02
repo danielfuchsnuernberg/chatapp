@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
 <title>Tin Can</title>
 <meta name="description" content="Simple private chat rooms. No account, no phone number." />
+<!-- what shows when the invite link is pasted into a messenger -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Tin Can" />
+<meta property="og:title" content="Tin Can" />
+<meta property="og:description" content="Simple private chat rooms. No account, no phone number." />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Tin Can" />
+<meta name="twitter:description" content="Simple private chat rooms. No account, no phone number." />
 <meta name="theme-color" content="#0B141A" />
 
 <!-- Add to Home Screen: launches with no Safari bars -->
@@ -28,7 +36,9 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overscroll-behavior:none}
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%}   /* iOS must not resize our type */
+/* the canvas behind everything — without this iOS paints the strip below
+   the app white, outside both the body and the fixed layer */
+html{background:#0B141A;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{
   margin:0;overflow:hidden;display:grid;place-items:center;
   -webkit-user-select:none;user-select:none;
@@ -67,6 +77,9 @@ body.mob .island,body.mob .home-bar{display:none}
    app, which puts our header straight under the clock. */
 body.mob .header{padding-top:calc(9px + var(--safetop,0px))}
 body.mob .composer{padding-bottom:calc(9px + var(--safebot,8px))}
+/* keyboard up: there is no home indicator to clear, so that padding
+   becomes a dead gap between the composer and the keyboard */
+body.mob.kb .composer{padding-bottom:8px}
 body.mob .lobby{
   padding-top:calc(26px + var(--safetop,0px));
   padding-bottom:calc(26px + var(--safebot,0px));
@@ -78,8 +91,10 @@ body.mob .lobby{
 .who{flex:1;min-width:0;line-height:1.25}
 .who b{display:block;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .who span{display:block;font-size:12px;color:var(--dim)}
-.wipe{flex:none;font-size:16px;opacity:.65;padding:6px 4px;cursor:pointer;transition:opacity .2s}
-.wipe.armed{opacity:1;filter:drop-shadow(0 0 6px rgba(255,120,120,.9))}
+.wipe{flex:none;opacity:.6;padding:6px 2px;cursor:pointer;transition:opacity .2s;line-height:0}
+.wipe svg{width:19px;height:19px;fill:var(--text)}
+.wipe.armed{opacity:1}
+.wipe.armed svg{fill:#ff6b6b}
 
 .chat{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px 10px 12px;display:flex;flex-direction:column;gap:3px;
   background-color:#0B141A;background-size:150px 150px;
@@ -219,7 +234,7 @@ body.mob .lobby{
       <div class="back" id="leave" role="button" tabindex="0" aria-label="Leave room">‹</div>
       <div class="avatar" id="avatar">?</div>
       <div class="who"><b id="peerName">Dave</b><span id="presence">online</span></div>
-      <div class="wipe" id="wipe" role="button" tabindex="0" aria-label="Clear this chat">🗑</div>
+      <div class="wipe" id="wipe" role="button" tabindex="0" aria-label="Clear this chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zM6 9h12l-1 11.2A2 2 0 0 1 15 22H9a2 2 0 0 1-2-1.8L6 9zm3 2v8h2v-8H9zm4 0v8h2v-8h-2z"/></svg></div>
     </div>
 
     <div class="chat" id="chat">
@@ -253,6 +268,7 @@ if (typeof mqtt === 'undefined') document.write('<script src="https://cdn.jsdeli
 const stage=document.getElementById('stage');
 const isPhone=()=>innerWidth<=520||/iPad|iPhone|iPod|Android/.test(navigator.userAgent);
 
+let restingH=0;
 function layout(){
   const phone=isPhone();
   document.body.classList.toggle('mob',phone);
@@ -264,6 +280,9 @@ function layout(){
     // opens, and the app has to follow it or it ends up off screen
     const h=vv?vv.height:innerHeight;
     const top=vv?vv.offsetTop:0;
+    if(h>restingH) restingH=h;
+    // a big drop from the tallest height we have seen means the keyboard
+    document.body.classList.toggle('kb', restingH-h>120);
     const root=document.documentElement.style;
     root.setProperty('--vh',h+'px');
     root.setProperty('--vtop',top+'px');
