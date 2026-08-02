@@ -6,120 +6,150 @@
 <title>Lost in Transit</title>
 <meta name="description" content="A chat app where what you type and what your friend receives are two very different things." />
 <meta name="theme-color" content="#0B141A" />
+
+<!-- Add to Home Screen: launches with no Safari bars -->
+<link rel="manifest" href="manifest.json" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Lost in Transit" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" href="icon-192.png" />
 <style>
 /* ============================================================
    LOST IN TRANSIT
-   You type a message. Your friend receives a completely
-   different one. Works solo (against a bot) or live between
-   two phones via a room code.
-
-   The scramble happens on the SENDER's device. Only the
-   nonsense is ever transmitted, so your friend genuinely
-   cannot see what you actually typed.
+   You type a message. Your friend receives something else
+   entirely — text, a meme GIF, a wall of emoji, a voice note
+   of nothing. Neither of you ever sees the original.
    ============================================================ */
-
 :root{
-  --app-bg:#0B141A;
-  --panel:#1F2C34;
-  --bubble-out:#005C4B;
-  --bubble-in:#202C33;
-  --text:#E9EDEF;
-  --dim:#8696A0;
-  --accent:#00A884;
-  --tick:#53BDEB;
-  --notice-bg:#182229;
-  --notice-fg:#FFD279;
+  --app-bg:#0B141A; --panel:#1F2C34;
+  --bubble-out:#005C4B; --bubble-in:#202C33;
+  --text:#E9EDEF; --dim:#8696A0; --accent:#00A884; --tick:#53BDEB;
+  --notice-bg:#182229; --notice-fg:#FFD279;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
+html,body{height:100%;overscroll-behavior:none}
 body{
   margin:0;overflow:hidden;display:grid;place-items:center;
+  -webkit-user-select:none;user-select:none;
   background:radial-gradient(900px 600px at 50% -10%,#16323a,transparent 60%),linear-gradient(#07090c,#101418);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:var(--text);
 }
-
-/* ---------- phone shell ---------- */
 .stage{transform-origin:center center}
-.phone{
-  position:relative;width:390px;height:844px;background:#0a0a0c;
-  border-radius:54px;padding:12px;
-  box-shadow:0 0 0 2px #2b2f36,0 40px 80px rgba(0,0,0,.65),inset 0 0 0 1px rgba(255,255,255,.06);
-}
+.phone{position:relative;width:390px;height:844px;background:#0a0a0c;border-radius:54px;padding:12px;
+  box-shadow:0 0 0 2px #2b2f36,0 40px 80px rgba(0,0,0,.65),inset 0 0 0 1px rgba(255,255,255,.06)}
 .screen{position:relative;width:100%;height:100%;border-radius:42px;overflow:hidden;background:var(--app-bg);display:flex;flex-direction:column}
 .island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:118px;height:32px;background:#000;border-radius:20px;z-index:60}
 .home-bar{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(233,237,239,.55);z-index:60}
 
-/* on a real phone, drop the frame and go fullscreen */
 @media (max-width:520px){
-  body{display:block}
-  .stage{transform:none!important}
-  .phone{width:100vw;height:100vh;height:100dvh;border-radius:0;padding:0;box-shadow:none}
+  body{display:block;position:fixed;inset:0}
+  .stage{transform:none!important;height:100%}
+  .phone{width:100%;border-radius:0;padding:0;box-shadow:none;height:100dvh;height:var(--vh,100dvh)}
   .screen{border-radius:0}
   .island,.home-bar{display:none}
-  .status{height:env(safe-area-inset-top,20px);min-height:20px;padding-bottom:2px}
+  .status{height:calc(env(safe-area-inset-top,20px) + 4px);min-height:20px;padding:0;overflow:hidden}
+  .status>*{display:none}
   .composer{padding-bottom:calc(10px + env(safe-area-inset-bottom,10px))}
+  .lobby{padding-top:calc(34px + env(safe-area-inset-top,0px));padding-bottom:calc(34px + env(safe-area-inset-bottom,0px))}
 }
+@supports not (height:100dvh){ @media (max-width:520px){ .phone{height:100vh;height:var(--vh,100vh)} } }
 
-/* ---------- status bar ---------- */
 .status{height:54px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font-size:14px;font-weight:600;background:var(--panel)}
 .status .right{display:flex;align-items:center;gap:6px;font-size:12px}
 .batt{width:24px;height:12px;border:1.4px solid rgba(233,237,239,.7);border-radius:3px;padding:1.5px;position:relative}
 .batt::after{content:"";position:absolute;right:-3.5px;top:3.5px;width:2px;height:5px;background:rgba(233,237,239,.7);border-radius:0 2px 2px 0}
 .batt i{display:block;height:100%;width:78%;background:var(--text);border-radius:1px}
 
-/* ---------- header ---------- */
 .header{flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px 10px;background:var(--panel);border-bottom:1px solid rgba(0,0,0,.35);z-index:20}
 .back{color:var(--accent);font-size:24px;line-height:1;cursor:pointer;padding:0 2px}
 .avatar{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;font-size:16px;color:#04231d;background:conic-gradient(from 210deg,#00A884,#0d7a68,#1F6E5C,#00A884)}
 .who{flex:1;min-width:0;line-height:1.25}
 .who b{display:block;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .who span{display:block;font-size:12px;color:var(--dim)}
-.flipper{flex:none;display:flex;background:#111b21;border:1px solid rgba(233,237,239,.12);border-radius:999px;padding:3px;cursor:pointer;user-select:none}
-.flipper span{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:5px 9px;border-radius:999px;color:var(--dim);transition:.22s}
-.flipper .on{background:var(--accent);color:#04231d}
 
-/* ---------- chat ---------- */
-.chat{
-  flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px 10px 12px;
-  display:flex;flex-direction:column;gap:3px;background-color:#0B141A;
-  background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'><g fill='none' stroke='%238696A0' stroke-opacity='0.13' stroke-width='1.6' stroke-linecap='round'><path d='M18 24c6-8 16-4 12 4s-14 3-10-6'/><path d='M62 14h14M69 7v14'/><path d='M104 20c5-6 11 0 6 6s-13 1-8-7'/><path d='M132 40c-6 4-4 12 3 10'/><path d='M14 66c8-3 10 8 2 9'/><path d='M46 58l6 8-6 8-6-8z'/><path d='M86 62c7-6 15 2 8 9s-16-1-9-9'/><path d='M120 74h16'/><path d='M124 68l8 12'/><path d='M22 108c9-7 18 3 9 10s-19-2-10-10'/><path d='M58 100l5 6 5-6M58 112l5 6 5-6'/><path d='M96 106h14M103 99v14'/><path d='M130 116c-7 2-7 12 1 12'/><path d='M34 140c6-6 12 0 6 6'/><path d='M74 134c8 0 8 12 0 12'/><path d='M112 140h10'/></g></svg>");
-  background-size:150px 150px;
-}
+.chat{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px 10px 12px;display:flex;flex-direction:column;gap:3px;
+  background-color:#0B141A;background-size:150px 150px;
+  background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'><g fill='none' stroke='%238696A0' stroke-opacity='0.13' stroke-width='1.6' stroke-linecap='round'><path d='M18 24c6-8 16-4 12 4s-14 3-10-6'/><path d='M62 14h14M69 7v14'/><path d='M104 20c5-6 11 0 6 6s-13 1-8-7'/><path d='M132 40c-6 4-4 12 3 10'/><path d='M14 66c8-3 10 8 2 9'/><path d='M46 58l6 8-6 8-6-8z'/><path d='M86 62c7-6 15 2 8 9s-16-1-9-9'/><path d='M120 74h16'/><path d='M124 68l8 12'/><path d='M22 108c9-7 18 3 9 10s-19-2-10-10'/><path d='M58 100l5 6 5-6M58 112l5 6 5-6'/><path d='M96 106h14M103 99v14'/><path d='M130 116c-7 2-7 12 1 12'/><path d='M34 140c6-6 12 0 6 6'/><path d='M74 134c8 0 8 12 0 12'/><path d='M112 140h10'/></g></svg>")}
 .chat::-webkit-scrollbar{width:0}
 .day{align-self:center;background:var(--notice-bg);color:var(--dim);font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:8px;margin:2px 0 8px}
 .notice{align-self:center;max-width:90%;text-align:center;background:var(--notice-bg);color:var(--notice-fg);font-size:11.5px;line-height:1.45;padding:8px 12px;border-radius:8px;margin-bottom:10px}
 
-.row{display:flex;margin:1px 0;perspective:1000px}
+/* ---------- bubbles ---------- */
+.row{display:flex;margin:1px 0}
 .row.out{justify-content:flex-end}
-.bubble{position:relative;max-width:78%;cursor:pointer;display:grid;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.8,.25,1)}
-.bubble.flip{transform:rotateY(180deg)}
-.face{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:6px 9px 7px 10px;border-radius:9px;font-size:14.8px;line-height:1.36;word-wrap:break-word;box-shadow:0 1px 1px rgba(0,0,0,.35);display:flex;flex-direction:column}
-.face.back{transform:rotateY(180deg)}
-.out .face{background:var(--bubble-out);border-top-right-radius:2px}
-.in .face{background:var(--bubble-in);border-top-left-radius:2px}
-.face.locked{color:var(--dim);font-style:italic;font-size:13.5px}
+.bubble{position:relative;max-width:78%;padding:6px 9px 7px 10px;border-radius:9px;font-size:14.8px;line-height:1.36;
+  word-wrap:break-word;box-shadow:0 1px 1px rgba(0,0,0,.35);display:flex;flex-direction:column;animation:pop .18s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.out .bubble{background:var(--bubble-out);border-top-right-radius:2px}
+.in .bubble{background:var(--bubble-in);border-top-left-radius:2px}
+.bubble::after{content:"";position:absolute;top:0;width:9px;height:13px}
+.out .bubble::after{right:-8px;background:var(--bubble-out);clip-path:polygon(0 0,100% 0,0 100%)}
+.in .bubble::after{left:-8px;background:var(--bubble-in);clip-path:polygon(0 0,100% 0,100% 100%)}
+.bubble.plain{background:transparent!important;box-shadow:none;padding:2px 4px}
+.bubble.plain::after{display:none}
+.bubble.media-b{padding:3px 3px 4px}
+.txt,#input,.lobby input{-webkit-user-select:text;user-select:text}
 .txt{white-space:pre-wrap}
+.txt.big{font-size:34px;line-height:1.25}
+.sticker{font-size:88px;line-height:1;animation:wob 2.4s ease-in-out infinite}
 .meta{align-self:flex-end;display:flex;align-items:center;gap:4px;font-size:10.5px;color:rgba(233,237,239,.55);margin:-2px 0 -1px 10px}
+.media-b .meta{margin-top:-20px;margin-right:4px;z-index:2;text-shadow:0 1px 3px rgba(0,0,0,.9);color:#fff}
 .tick{color:var(--tick);font-size:11px;letter-spacing:-2px}
-.typing .face{padding:11px 14px}
+
+/* ---------- the "GIF" ---------- */
+.media{position:relative;width:212px;height:160px;border-radius:7px;overflow:hidden;display:grid;place-items:center}
+.media .subj{font-size:60px;line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45));z-index:1}
+.cap{position:absolute;left:5px;right:5px;text-align:center;z-index:2;
+  font-family:Impact,"Haettenschweiler","Arial Black",sans-serif;font-size:19px;line-height:1.02;
+  letter-spacing:.4px;color:#fff;text-transform:uppercase;
+  text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,0 0 6px rgba(0,0,0,.6)}
+.cap.top{top:7px} .cap.bot{bottom:24px}
+.badge{position:absolute;left:6px;bottom:6px;z-index:3;background:rgba(0,0,0,.6);color:#fff;
+  font-size:9px;font-weight:800;letter-spacing:1.2px;padding:2px 5px;border-radius:4px}
+.conf{position:absolute;font-size:17px;opacity:.9;animation:drift 3.4s linear infinite}
+@keyframes drift{0%{transform:translateY(120%) rotate(0)}100%{transform:translateY(-140%) rotate(320deg)}}
+@keyframes wob{0%,100%{transform:rotate(-7deg) scale(1)}50%{transform:rotate(7deg) scale(1.07)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes boing{0%,100%{transform:translateY(0) scale(1,1)}45%{transform:translateY(-26px) scale(.92,1.1)}70%{transform:translateY(0) scale(1.12,.88)}}
+@keyframes shake{0%,100%{transform:translate(0,0)}20%{transform:translate(-7px,3px) rotate(-8deg)}40%{transform:translate(7px,-3px) rotate(8deg)}60%{transform:translate(-5px,-4px) rotate(-5deg)}80%{transform:translate(5px,4px) rotate(5deg)}}
+@keyframes thump{0%,100%{transform:scale(1)}30%{transform:scale(1.35)}45%{transform:scale(.95)}}
+@keyframes swing{0%,100%{transform:rotate(-22deg)}50%{transform:rotate(22deg)}}
+@keyframes slide{0%,100%{transform:translateX(-46px)}50%{transform:translateX(46px)}}
+.a-wob{animation:wob 1.1s ease-in-out infinite}
+.a-spin{animation:spin 1.6s linear infinite}
+.a-boing{animation:boing 1s ease-in-out infinite}
+.a-shake{animation:shake .5s linear infinite}
+.a-thump{animation:thump .85s ease-in-out infinite}
+.a-swing{animation:swing 1.3s ease-in-out infinite}
+.a-slide{animation:slide 1.8s ease-in-out infinite}
+.bgmove{background-size:400% 400%;animation:bgpan 7s ease infinite}
+@keyframes bgpan{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+
+/* ---------- voice note ---------- */
+.voice{display:flex;align-items:center;gap:9px;width:208px;padding:2px 0 4px}
+.voice .play{width:26px;height:26px;flex:none;display:grid;place-items:center;color:var(--text);font-size:13px}
+.wave{flex:1;display:flex;align-items:center;gap:2px;height:24px}
+.wave i{flex:1;background:rgba(233,237,239,.42);border-radius:2px;min-height:3px}
+.voice .dur{font-size:11px;color:var(--dim);flex:none}
+
+.typing .bubble{padding:11px 14px}
 .dots{display:flex;gap:4px}
 .dots i{width:7px;height:7px;border-radius:50%;background:var(--dim);animation:bounce 1.2s infinite}
 .dots i:nth-child(2){animation-delay:.16s}
 .dots i:nth-child(3){animation-delay:.32s}
 @keyframes bounce{0%,60%,100%{opacity:.35;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
 
-/* ---------- composer ---------- */
 .composer{flex:none;padding:8px 8px 26px;background:var(--app-bg);display:flex;align-items:flex-end;gap:8px}
 .field{flex:1;display:flex;align-items:flex-end;gap:8px;background:var(--panel);border-radius:22px;padding:9px 12px}
-.field .ic{color:var(--dim);font-size:17px;line-height:1}
+.field .ic{color:var(--dim);font-size:17px;line-height:1;cursor:pointer}
 #input{flex:1;border:0;outline:0;resize:none;background:transparent;color:var(--text);font:inherit;font-size:16px;line-height:1.35;max-height:88px}
 #input::placeholder{color:var(--dim)}
 .send{flex:none;width:44px;height:44px;border:0;border-radius:50%;background:var(--accent);color:#04231d;display:grid;place-items:center;cursor:pointer;transition:transform .15s}
 .send:active{transform:scale(.92)}
 .send svg{width:21px;height:21px;fill:currentColor}
 
-/* ---------- lobby ---------- */
 .lobby{position:absolute;inset:0;z-index:50;background:linear-gradient(#111b21,#0B141A);display:flex;flex-direction:column;justify-content:center;padding:34px 28px;gap:8px;overflow-y:auto}
 .lobby.hide{display:none}
 .mark{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-weight:700}
@@ -132,48 +162,41 @@ body{
 #code{letter-spacing:6px;text-transform:uppercase;font-weight:700;font-size:20px;text-align:center}
 .btn{width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;background:var(--accent);color:#04231d}
 .btn.ghost{background:transparent;color:var(--dim);border:1px solid rgba(233,237,239,.15);margin-top:8px}
-.btn:active{transform:scale(.99)}
 .row2{display:flex;gap:8px}
 .row2 .btn{margin-top:12px}
 .hint{font-size:11.5px;color:var(--dim);margin-top:14px;line-height:1.5}
 .status-line{font-size:12.5px;color:var(--notice-fg);margin-top:12px;min-height:18px}
-
 .toast{position:absolute;left:50%;bottom:96px;transform:translate(-50%,10px);background:#000c;color:#fff;font-size:12.5px;padding:9px 14px;border-radius:20px;opacity:0;pointer-events:none;transition:.25s;z-index:70}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media (prefers-reduced-motion:reduce){.bubble{transition:none}.dots i{animation:none}}
+@media (prefers-reduced-motion:reduce){
+  .dots i,.sticker,.conf,.bgmove,[class^="a-"]{animation:none!important}
+}
 </style>
 </head>
 <body>
-
 <div class="stage" id="stage">
 <div class="phone">
   <div class="island"></div>
   <div class="screen">
 
-    <!-- ============ LOBBY ============ -->
     <div class="lobby" id="lobby">
       <div class="mark">Lost in Transit</div>
       <h1>Say one thing.<br>Send <em>something else</em>.</h1>
-      <p>Every message is mangled on the way out. You see what you typed. They see whatever this thing decides you meant.</p>
-
+      <p>Every message is mangled on the way out. You see what you typed. They see something else — and you never find out what.</p>
       <label for="name">Your name</label>
       <input id="name" maxlength="18" placeholder="Dave" autocomplete="off" />
-
       <label for="code">Room code</label>
       <input id="code" maxlength="5" placeholder="ABCD" autocomplete="off" spellcheck="false" />
-
       <div class="row2">
         <button class="btn" id="joinBtn">Join room</button>
         <button class="btn" id="newBtn">New room</button>
       </div>
       <button class="btn ghost" id="soloBtn">Play solo against a bot</button>
-
       <div class="status-line" id="lobbyStatus"></div>
       <div class="hint">Rooms run over a free public message broker, so treat any room code as public. Fine for nonsense, bad for secrets — which is lucky, because nothing you type arrives intact anyway.</div>
     </div>
 
-    <!-- ============ CHAT ============ -->
     <div class="status">
       <div id="clock">9:41</div>
       <div class="right"><span>▮▮▮▯</span><span>WiFi</span><div class="batt"><i></i></div></div>
@@ -182,19 +205,12 @@ body{
     <div class="header">
       <div class="back" id="leave" role="button" tabindex="0" aria-label="Leave room">‹</div>
       <div class="avatar" id="avatar">?</div>
-      <div class="who">
-        <b id="peerName">Dave</b>
-        <span id="presence">online</span>
-      </div>
-      <div class="flipper" id="flipper" role="button" tabindex="0" aria-label="Switch phones">
-        <span class="on" id="lblYou">You</span>
-        <span id="lblThem">Them</span>
-      </div>
+      <div class="who"><b id="peerName">Dave</b><span id="presence">online</span></div>
     </div>
 
     <div class="chat" id="chat">
       <div class="day">TODAY</div>
-      <div class="notice" id="notice">Messages are scrambled before they leave your phone. Tap any bubble to flip it.</div>
+      <div class="notice">🔒 Messages are end-to-end scrambled. Nobody outside this chat can read them. Neither can anyone inside it.</div>
     </div>
 
     <div class="composer">
@@ -214,280 +230,324 @@ body{
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
-/* fallback CDN if the first one is unreachable */
-if (typeof mqtt === 'undefined') {
-  document.write('<script src="https://cdn.jsdelivr.net/npm/mqtt/dist/mqtt.min.js"><\/script>');
-}
+if (typeof mqtt === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/mqtt/dist/mqtt.min.js"><\/script>');
 </script>
 
 <script>
 /* =========================================================
-   0. Fit the fixed phone into a desktop window
+   0. Viewport
    ========================================================= */
-const stage = document.getElementById('stage');
-function fit(){
-  if (innerWidth <= 520) return;
-  stage.style.transform = 'scale(' + Math.min(1,(innerHeight-24)/844,(innerWidth-24)/390) + ')';
+const stage=document.getElementById('stage');
+function fit(){ if(innerWidth<=520) return;
+  stage.style.transform='scale('+Math.min(1,(innerHeight-24)/844,(innerWidth-24)/390)+')'; }
+addEventListener('resize',fit); fit();
+
+const standalone=matchMedia('(display-mode:standalone)').matches||navigator.standalone===true;
+function setVH(){
+  const h=(window.visualViewport?visualViewport.height:innerHeight);
+  document.documentElement.style.setProperty('--vh',h+'px');
+  const c=document.getElementById('chat'); if(c) c.scrollTop=c.scrollHeight;
 }
-addEventListener('resize', fit); fit();
+if(window.visualViewport){ visualViewport.addEventListener('resize',setVH); visualViewport.addEventListener('scroll',setVH); }
+addEventListener('orientationchange',()=>setTimeout(setVH,120)); setVH();
+document.addEventListener('touchmove',e=>{ if(!e.target.closest('#chat, #lobby, #input')) e.preventDefault(); },{passive:false});
 
 /* =========================================================
-   1. THE JOKE ENGINE
-   Curated punchlines, picked by what you *meant* rather than
-   what you said. Shape in, nonsense out.
+   1. RAW MATERIAL
    ========================================================= */
-const JOKES = {
-greeting:[
- "I've been asked to leave the aquarium and I'd rather not discuss it.",
- "Morning. The birds have stopped singing, which I don't love.",
- "Hello. Do not describe me to anyone.",
- "Hey. I'm at a christening I wasn't invited to.",
- "Quick one before you say anything: how much does a swan cost.",
- "I've started a small fire and I am handling it.",
- "Alright. I've been up since four and I've learned things.",
- "Hiya. Nothing has happened. Ignore the sirens.",
- "Hello I am legally a hedge now.",
- "Morning! I've made a decision and everyone's furious.",
- "Hey. Are you sitting down. Sit down.",
- "Just landed. Not on a plane."
-],
-question:[
- "Why does your dad have a key to my flat?",
- "Is it normal for a fridge to hum in D minor?",
- "How many geese is too many geese, legally speaking?",
- "Do you still have that shovel or did we leave it there?",
- "Quick question, is your uncle real?",
- "Have you ever met a tall man called Gary? Think carefully.",
- "Would you say the moon is load-bearing?",
- "Are you the one who keeps moving my bins?",
- "How do you feel about lasagna as a personality trait?",
- "Can a horse be sued? Don't ask why.",
- "What's your honest position on ponds?",
- "Is 4am too early to knock on someone's door with news?",
- "Be honest. Do I look like a man who owns a kiln?",
- "If a ferret signs something, is it binding?"
-],
-agree:[
- "Understood. The eels have been notified.",
- "Yes. Bring the ladder.",
- "Confirmed. I'll bury it at noon.",
- "Agreed. Nobody tells Gary.",
- "Yeah alright, but I'm bringing the ferret.",
- "Done. It's already in the boot.",
- "Fine. But we're not doing the pond thing again.",
- "Sorted. I've told the man in the van."
-],
-refuse:[
- "Absolutely not. Not after Blackpool.",
- "No. I still have the receipts and the swan.",
- "Can't. I'm being followed by a man with a clipboard.",
- "No chance. My landlord reads my post and he's chatty.",
- "Not a hope. I'm barred from that entire postcode.",
- "No. And I'd like that noted somewhere official."
-],
-laugh:[
- "Not funny. My cousin lost a finger to that exact joke.",
- "I'm laughing, but I'm also in a hedge.",
- "HAHA. Anyway I need forty quid and an alibi.",
- "Ha! Right. Serious question now. Where's the goat.",
- "Very good. Very good. I'm still not going back there."
-],
-love:[
- "You're my favourite person to be questioned alongside.",
- "I would commit light crime for you. Nothing heavy.",
- "I've named a pigeon after you. He's not well.",
- "You mean a lot to me and so does the caravan.",
- "I'd take a modest beating for you, is what I'm saying."
-],
-angry:[
- "I'm not angry. I'm just holding a brick.",
- "Say that again and I'm telling your mother about the caravan.",
- "This is exactly what the tribunal warned me about.",
- "Right. That's it. I'm getting the folder.",
- "I've been calm for eleven days and you've ruined it."
-],
-plans:[
- "8pm. Bring a shovel and a positive attitude.",
- "Can't do Thursday, I'm being sworn in.",
- "Meet me behind the garden centre. Come alone. Bring Dave.",
- "I'll be there. I'm bringing the goose. Non-negotiable.",
- "Yeah but only if we're not going near the ponds again.",
- "Can't, I'm judging a marrow competition under a false name.",
- "See you at half seven. Wear something you can run in.",
- "I'm free after the hearing."
-],
-food:[
- "I've eaten something I shouldn't have and I feel powerful.",
- "Not hungry. I had a full pheasant at the bus stop.",
- "There's a lasagna in my car. It's been there since March.",
- "I'm doing a thing where I only eat beige. Day nine.",
- "I've been banned from the buffet but not from the building."
-],
-sorry:[
- "I'm sorry about the swan. Truly. Deeply.",
- "It wasn't my fault and I have a witness. The witness is a dog.",
- "Look — the bishop started it.",
- "I've apologised to the council and I'm not doing it twice."
-],
-bye:[
- "Got to go, the man is back.",
- "Right. I'm off to lie down in a field.",
- "Night. If anyone asks, I was with you.",
- "Bye. Do not open the shed.",
- "Off to bed. Big day tomorrow, legally."
-],
-thanks:[
- "Don't thank me yet. Wait until Tuesday.",
- "You owe me a kidney and a Wagon Wheel.",
- "Cheers. Put it on my tab at the garden centre.",
- "No bother. I'll invoice the family."
-],
-money:[
- "I've got £4 and a horse. What do you need.",
- "My money is currently in a boat. Long story.",
- "I can't lend you anything, my accounts are being observed.",
- "I've invested everything in ferrets and I stand by it."
-],
-work:[
- "I've quit. I didn't work there. That's what makes it brave.",
- "My boss saw the photos and said nothing, which is worse.",
- "I'm on a break that has lasted since March.",
- "They've given me a lanyard and no explanation."
-],
-def:[
- "The sky is blue.",
- "I have never seen a horse. Not once. Not in person.",
- "My landlord knows what I did and he's being weird about it.",
- "Cheese is a construct and I'm done pretending otherwise.",
- "The pigeons outside my window are organised. Properly organised.",
- "I no longer own a spine. Long story, ends badly.",
- "Everything in aisle four is a lie.",
- "My toaster has opinions and it's started sharing them.",
- "The ferret signed the lease. It's binding, I checked.",
- "Nobody has ever proven the moon is load-bearing.",
- "I've been banned from three garden centres and one nativity.",
- "My uncle is, technically, a boat.",
- "The seagulls have my bank details. I don't want to talk about it.",
- "I am legally three hamsters in a coat.",
- "There's a man in my garden and he's very good at edging.",
- "I've been elected to something and nobody will tell me what.",
- "The vending machine and I have reached an understanding.",
- "I've got a bishop in the car and he's not happy.",
- "The bins went out on their own last night. I watched.",
- "I've started charging my neighbours to look at me.",
- "Sixteen swans. In the church. I'll explain nothing.",
- "My dentist has gone freelance and it shows.",
- "I have been described in a local newspaper as 'the man'.",
- "The forklift was a gift and I won't be shamed for it.",
- "I've been holding this pigeon for two hours and we've bonded.",
- "There's a tribunal on Thursday and I'm cautiously optimistic.",
- "I've hidden something in your house. Nothing bad. Nothing legal.",
- "The soup was a warning and I ignored it.",
- "Turns out you can't return a hedge.",
- "I've been mistaken for a mayor twice this week.",
- "The trampoline is gone and the neighbours are pretending it never existed.",
- "I've joined a choir under a false name and I'm thriving.",
- "My mattress has been outside for a month and it's making friends.",
- "I've eaten in a car park and I felt nothing.",
- "There's a llama situation developing and I'll keep you posted.",
- "My accountant has fled and I respect it.",
- "I've been given a badge and limited powers.",
- "The chandelier came down during the sermon and I got the blame.",
- "I've written to the council in verse and they've responded in kind.",
- "Everyone at the wedding knew except me."
-],
-short:[
- "Moist.","The goose knows.","Beep.","Confirmed. Bury it.","No more ferrets.",
- "It's happening.","Ask the pelican.","Wednesday, as agreed.","I have no spine.",
- "Yes, but sideways.","The tuba lied.","Gravy.","Not in this economy.",
- "The bins are watching.","Soup. Obviously.","He's behind me.","Say nothing to Gary."
-]
-};
+const R = a => a[Math.floor(Math.random()*a.length)];
+const chance = p => Math.random() < p;
 
-/* what did you *mean*? decides which joke bin we raid */
+const ADJ=['moist','haunted','discontinued','emotionally unavailable','gluten-free','load-bearing','government-issued',
+ 'deeply average','semi-retired','off-brand','feral','lukewarm','unsupervised','refurbished','part-time','ceremonial',
+ 'expired','sentient','mildly cursed','artisanal','damp','unlicensed','freelance','tax-deductible','wireless','regional',
+ 'suspiciously calm','non-refundable','left-handed','industrial'];
+const NOUN=['goose','hamster','lasagna','uncle','printer','trampoline','dentist','seagull','wizard','forklift','pigeon',
+ 'mattress','accountant','penguin','crab','radiator','tuba','badger','spreadsheet','meatball','hedgehog','kayak','ferret',
+ 'chandelier','submarine','bagpipe','llama','dumpster','mayor','mango','bishop','landlord','toaster','walrus','bouncer',
+ 'pelican','conservatory','vicar','wheelbarrow','tribunal'];
+const VERB=['haunts','licks','negotiates with','worships','files taxes for','apologises to','marinates','evicts','bribes',
+ 'catapults','moisturises','unionises','tolerates','headbutts','subscribes to','blesses','deletes','disappoints','reheats',
+ 'forgives','interrogates','yeets','judges','hydrates','betrays','refunds','exorcises','befriends','out-earns','laminates'];
+const PAST=['licked','adopted','married','deported','laminated','buried','befriended','insulted','reheated','unionised',
+ 'fostered','auctioned','blessed','misplaced','over-watered','impersonated','repossessed'];
+const PLACE=['in the car park','behind the church','under my bed','at the post office','in aisle seven','on the roof',
+ 'in the vents','at the bus station','in a Toyota Corolla','near the bins','on the ring road','in the ball pit',
+ 'at the garden centre','by the vending machine','in the pantry','round the back of Greggs','at the reservoir'];
+const TIME=['at 3am','every Tuesday','since 1997','on my birthday','until further notice','again','before the wedding',
+ 'twice','on live television','in front of everyone','without a permit','off the books','during the eulogy'];
+
+const EMO_SETS=[
+ ['😳','🦆','🔥','💀','🫡','🧀'],['🚨','🐐','📠','🥔','🫠','🛒'],['👁️','🌚','🧻','🦞','🎺','🪑'],
+ ['😭','🙏','🐍','🧊','🚜','🍽️'],['🤝','🐌','⚰️','🎪','🪿','🧯'],['💅','🦩','🚽','🛸','🥁','🫧'],
+ ['🫥','🐋','🧿','🪤','🍄','📡'],['😤','🐖','🪦','🎢','🧲','🥸']];
+const SUBJ=['🦆','🐐','🦞','🦢','🐌','🦩','🪿','🦔','🐋','🦧','🐙','🦥','🍄','🧀','🚜','📠','🪑','🧻','🎺','🚽','🛸','🧿','🥔','🪦','🎪','🧯'];
+
+const JOKES={
+greeting:["I've been asked to leave the aquarium and I'd rather not discuss it.","Morning. The birds have stopped singing, which I don't love.","Hello. Do not describe me to anyone.","Hey. I'm at a christening I wasn't invited to.","Quick one before you say anything: how much does a swan cost.","I've started a small fire and I am handling it.","Alright. I've been up since four and I've learned things.","Hiya. Nothing has happened. Ignore the sirens.","Hello I am legally a hedge now.","Hey. Are you sitting down. Sit down.","Just landed. Not on a plane."],
+question:["Why does your dad have a key to my flat?","Is it normal for a fridge to hum in D minor?","How many geese is too many geese, legally speaking?","Do you still have that shovel or did we leave it there?","Quick question, is your uncle real?","Have you ever met a tall man called Gary? Think carefully.","Would you say the moon is load-bearing?","Are you the one who keeps moving my bins?","Can a horse be sued? Don't ask why.","What's your honest position on ponds?","Is 4am too early to knock on someone's door with news?","If a ferret signs something, is it binding?"],
+agree:["Understood. The eels have been notified.","Yes. Bring the ladder.","Confirmed. I'll bury it at noon.","Agreed. Nobody tells Gary.","Yeah alright, but I'm bringing the ferret.","Done. It's already in the boot.","Fine. But we're not doing the pond thing again."],
+refuse:["Absolutely not. Not after Blackpool.","No. I still have the receipts and the swan.","Can't. I'm being followed by a man with a clipboard.","No chance. My landlord reads my post and he's chatty.","Not a hope. I'm barred from that entire postcode."],
+laugh:["Not funny. My cousin lost a finger to that exact joke.","I'm laughing, but I'm also in a hedge.","HAHA. Anyway I need forty quid and an alibi.","Ha! Right. Serious question now. Where's the goat."],
+love:["You're my favourite person to be questioned alongside.","I would commit light crime for you. Nothing heavy.","I've named a pigeon after you. He's not well.","You mean a lot to me and so does the caravan."],
+angry:["I'm not angry. I'm just holding a brick.","Say that again and I'm telling your mother about the caravan.","This is exactly what the tribunal warned me about.","Right. That's it. I'm getting the folder."],
+plans:["8pm. Bring a shovel and a positive attitude.","Can't do Thursday, I'm being sworn in.","Meet me behind the garden centre. Come alone. Bring Dave.","I'll be there. I'm bringing the goose. Non-negotiable.","Can't, I'm judging a marrow competition under a false name.","See you at half seven. Wear something you can run in."],
+food:["I've eaten something I shouldn't have and I feel powerful.","Not hungry. I had a full pheasant at the bus stop.","There's a lasagna in my car. It's been there since March.","I'm doing a thing where I only eat beige. Day nine."],
+sorry:["I'm sorry about the swan. Truly. Deeply.","It wasn't my fault and I have a witness. The witness is a dog.","Look — the bishop started it."],
+bye:["Got to go, the man is back.","Right. I'm off to lie down in a field.","Night. If anyone asks, I was with you.","Bye. Do not open the shed."],
+thanks:["Don't thank me yet. Wait until Tuesday.","You owe me a kidney and a Wagon Wheel.","Cheers. Put it on my tab at the garden centre."],
+money:["I've got £4 and a horse. What do you need.","My money is currently in a boat. Long story.","I've invested everything in ferrets and I stand by it."],
+work:["I've quit. I didn't work there. That's what makes it brave.","My boss saw the photos and said nothing, which is worse.","They've given me a lanyard and no explanation."],
+def:["The sky is blue.","I have never seen a horse. Not once.","My landlord knows what I did and he's being weird about it.","Cheese is a construct and I'm done pretending otherwise.","The pigeons outside my window are organised. Properly organised.","Everything in aisle four is a lie.","My toaster has opinions and it's started sharing them.","The ferret signed the lease. It's binding, I checked.","I've been banned from three garden centres and one nativity.","My uncle is, technically, a boat.","The seagulls have my bank details.","I am legally three hamsters in a coat.","I've been elected to something and nobody will tell me what.","I've got a bishop in the car and he's not happy.","The bins went out on their own last night. I watched.","Sixteen swans. In the church. I'll explain nothing.","The forklift was a gift and I won't be shamed for it.","There's a tribunal on Thursday and I'm cautiously optimistic.","The soup was a warning and I ignored it.","Turns out you can't return a hedge.","The trampoline is gone and the neighbours are pretending it never existed.","My accountant has fled and I respect it.","Everyone at the wedding knew except me."],
+short:["Moist.","The goose knows.","Beep.","Confirmed. Bury it.","No more ferrets.","It's happening.","Ask the pelican.","Wednesday, as agreed.","Yes, but sideways.","The tuba lied.","Gravy.","Not in this economy.","The bins are watching.","Soup. Obviously.","He's behind me."]};
+
 function classify(t){
-  const s = t.toLowerCase();
-  if (/(^|\s)(lol|lmao|haha+|hehe|😂|🤣)/.test(s)) return 'laugh';
-  if (/\b(sorry|apolog|my bad|forgive)/.test(s)) return 'sorry';
-  if (/\b(thanks|thank you|thx|ty|cheers|appreciate)/.test(s)) return 'thanks';
-  if (/\b(love|miss you|xx+|babe|❤|😘)/.test(s)) return 'love';
-  if (/\b(hate|angry|annoying|wtf|shut up|stop it|furious|seriously\?)/.test(s)) return 'angry';
-  if (/\b(hi|hey|yo|hello|morning|sup|hiya|alright)\b/.test(s) && s.length < 40) return 'greeting';
-  if (/\b(bye|goodnight|night|gtg|cya|see ya|later|sleep)\b/.test(s)) return 'bye';
-  if (/\b(eat|food|hungry|dinner|lunch|breakfast|pizza|takeaway|chippy|kebab|cook)/.test(s)) return 'food';
-  if (/\b(money|quid|cash|£|\$|pay|owe|broke|skint|rent)/.test(s)) return 'money';
-  if (/\b(work|job|boss|shift|office|meeting|email|monday)/.test(s)) return 'work';
-  if (/\b(tonight|tomorrow|meet|meeting up|free|pub|come over|what time|when|where|plans|weekend)/.test(s)) return 'plans';
-  if (/\b(no|nah|nope|can't|cant|won't|wont|never)\b/.test(s) && s.length < 30) return 'refuse';
-  if (/\b(ok|okay|yes|yeah|yep|sure|fine|k|deal|alright)\b/.test(s) && s.length < 25) return 'agree';
-  if (/\?\s*$/.test(s)) return 'question';
-  if (s.split(/\s+/).length <= 2 && s.length <= 12) return 'short';
+  const s=t.toLowerCase();
+  if(/(^|\s)(lol|lmao|haha+|hehe|😂|🤣)/.test(s)) return 'laugh';
+  if(/\b(sorry|apolog|my bad)/.test(s)) return 'sorry';
+  if(/\b(thanks|thank you|thx|ty|cheers)/.test(s)) return 'thanks';
+  if(/\b(love|miss you|xx+|babe|❤|😘)/.test(s)) return 'love';
+  if(/\b(hate|angry|annoying|wtf|shut up|furious)/.test(s)) return 'angry';
+  if(/\b(hi|hey|yo|hello|morning|sup|hiya)\b/.test(s)&&s.length<40) return 'greeting';
+  if(/\b(bye|goodnight|night|gtg|cya|later)\b/.test(s)) return 'bye';
+  if(/\b(eat|food|hungry|dinner|lunch|pizza|takeaway|cook)/.test(s)) return 'food';
+  if(/\b(money|quid|cash|£|\$|pay|owe|broke|rent)/.test(s)) return 'money';
+  if(/\b(work|job|boss|shift|office|meeting|email)/.test(s)) return 'work';
+  if(/\b(tonight|tomorrow|meet|free|pub|come over|what time|when|where|plans|weekend)/.test(s)) return 'plans';
+  if(/\b(no|nah|nope|can't|cant|never)\b/.test(s)&&s.length<30) return 'refuse';
+  if(/\b(ok|okay|yes|yeah|yep|sure|fine|k|deal)\b/.test(s)&&s.length<25) return 'agree';
+  if(/\?\s*$/.test(s)) return 'question';
+  if(s.split(/\s+/).length<=2&&s.length<=12) return 'short';
   return 'def';
 }
-
-/* never repeat a punchline until the bin runs dry */
-const used = {};
+const used={};
 function draw(bin){
-  const pool = JOKES[bin] || JOKES.def;
-  used[bin] = used[bin] || [];
-  if (used[bin].length >= pool.length) used[bin] = [];
-  let line, guard = 0;
-  do { line = pool[Math.floor(Math.random()*pool.length)]; guard++; }
-  while (used[bin].includes(line) && guard < 40);
-  used[bin].push(line);
-  return line;
-}
-
-function scramble(text){
-  const src = text.trim();
-  const bin = classify(src);
-  let out = draw(bin);
-  // long messages get a second punchline, because effort deserves punishment
-  if (src.split(/\s+/).length > 12 && bin !== 'short') out += ' ' + draw('def');
-  // keep the shouting, keep the questions
-  if (/\?\s*$/.test(src) && !/\?/.test(out)) out = out.replace(/[.!]$/,'') + '?';
-  if (src.length > 3 && src === src.toUpperCase() && /[A-Z]/.test(src)) out = out.toUpperCase();
-  return out;
+  const pool=JOKES[bin]||JOKES.def; used[bin]=used[bin]||[];
+  if(used[bin].length>=pool.length) used[bin]=[];
+  let line,g=0; do{ line=R(pool); g++; }while(used[bin].includes(line)&&g<40);
+  used[bin].push(line); return line;
 }
 
 /* =========================================================
-   2. Chat UI
+   2. TEXT GENERATORS — nine different flavours of wrong
+   ========================================================= */
+const GEN = {
+  /* curated punchline, matched to what you meant */
+  joke: src => draw(classify(src)),
+
+  /* grammatically fine, semantically unwell */
+  madlib: () => R([
+    ()=>`${R(['The','A','My','Your','Someone\'s'])} ${R(ADJ)} ${R(NOUN)} ${R(VERB)} my ${R(NOUN)} ${R(PLACE)}.`,
+    ()=>`I ${R(PAST)} a ${R(ADJ)} ${R(NOUN)} ${R(TIME)} and I'd do it again.`,
+    ()=>`Why is the ${R(NOUN)} so ${R(ADJ)}? Nobody will say.`,
+    ()=>`${R(NOUN)}s cannot be trusted ${R(PLACE)}.`,
+    ()=>`Do not bring the ${R(ADJ)} ${R(NOUN)} ${R(PLACE)}. I mean it ${R(TIME)}.`,
+    ()=>`${R(ADJ)} ${R(NOUN)}, ${R(TIME)}, ${R(PLACE)}. That's the whole plan.`
+  ])(),
+
+  /* autocorrect that has given up — long messages only, see leak guard below */
+  autocorrect: src => {
+    const keep=/^(i|a|an|the|is|are|was|you|my|to|and|of|it|in|on|do|does|how|what|why|can|will|not|we|be|at|so|if|for|me|im|its|that|this)$/i;
+    const w=src.split(/\s+/).filter(Boolean);
+    const out=w.map(word=>{
+      const bare=word.replace(/[^\w']/g,'');
+      if(!bare||keep.test(bare)||chance(0.22)) return word;
+      const sub=R([R(NOUN),R(ADJ),R(NOUN)+'s',R(PAST)]);
+      return word.replace(bare,sub);
+    }).join(' ');
+    return out+(chance(0.5)?' *'+R(NOUN):'');
+  },
+
+  /* keysmash, then composure */
+  keysmash: () => {
+    const smash=Array.from({length:6+Math.floor(Math.random()*9)},()=>'asdfghjklqwertyuiop'[Math.floor(Math.random()*19)]).join('');
+    return R([`${smash} sorry cat walked over the— ANYWAY. ${draw('def')}`,
+      `${smash}\n\nignore that. ${draw('short')}`,
+      `${smash.toUpperCase()} that was the ${R(NOUN)}, not me.`]);
+  },
+
+  /* automated systems that have also lost it */
+  system: () => R([
+    `Your parcel is out for delivery. Driver: Gary. Contents: unclear. Do not sign.`,
+    `NHS reminder: you have an appointment ${R(TIME)} regarding the ${R(NOUN)}.`,
+    `Your subscription to ${R(ADJ)} ${R(NOUN)} has renewed. £${(Math.random()*90+3).toFixed(2)} taken.`,
+    `Low battery. 4% remaining. The ${R(NOUN)} is aware.`,
+    `Two-factor code: ${Math.floor(100000+Math.random()*899999)}. Never share this with the ${R(NOUN)}.`,
+    `Delivery attempted ${R(TIME)}. Nobody was in. Something was.`,
+    `You have 1 new voicemail from UNKNOWN. Duration: 41 minutes. Content: breathing.`
+  ]),
+
+  /* prophecy energy */
+  prophecy: () => R([
+    `The third ${R(NOUN)} shall arrive ${R(TIME)}. Do not feed it.`,
+    `When the ${R(NOUN)} turns ${R(ADJ)}, the deal is off.`,
+    `It was written ${R(PLACE)}, and it was written badly.`,
+    `Two more winters. Then the ${R(NOUN)}.`,
+    `He who ${R(VERB)} the ${R(NOUN)} shall not be invited back.`
+  ]),
+
+  /* the worst emails you've ever received */
+  corporate: () => R([
+    `Just circling back on the ${R(NOUN)} situation. Can we align ${R(TIME)}?`,
+    `Per my last message — the ${R(NOUN)} is now a blocker. Flagging early.`,
+    `Quick sync re: ${R(ADJ)} ${R(NOUN)}. 15 mins. Camera optional. Shoes mandatory.`,
+    `Looping in the ${R(NOUN)} for visibility. Parking this until Q3.`,
+    `Great work today team. The ${R(NOUN)} has been let go.`
+  ]),
+
+  /* stage directions from a play going badly */
+  subtitle: () => R([
+    `[muffled shouting]`,`[distant tuba]`,`[door slams] [${R(NOUN)} enters]`,`[wet sound]`,
+    `[laughter, then silence]`,`[sirens, approaching]`,`[a ${R(NOUN)}, screaming]`,
+    `[indistinct — possibly Welsh]`,`[applause from one person]`
+  ]),
+
+  /* wrong number, right vibes */
+  wrongnum: () => R([
+    `Hi love it's Nan. I'm in the pipe. Don't tell your mother.`,
+    `Is that Dean? If that's Dean the ${R(NOUN)} is ready.`,
+    `sorry wrong chat. anyway ${draw('def').toLowerCase()}`,
+    `Hiya! It's Karen from the ${R(NOUN)} group. We've all seen it.`,
+    `mate wrong number but you should still know about the ${R(NOUN)}`
+  ]),
+
+  /* commentary from a broadcast nobody ordered */
+  broadcast: () => R([
+    `And he's done it — the ${R(NOUN)} is through on goal ${R(PLACE)}. Unbelievable scenes.`,
+    `Weather for tonight: ${R(ADJ)}, with a chance of ${R(NOUN)}s ${R(TIME)}.`,
+    `Traffic update: the M6 is closed. A ${R(NOUN)} is on the carriageway and is not moving.`,
+    `Coming up after the break — my ${R(ADJ)} ${R(NOUN)} ruined my wedding.`,
+    `Step 4: fold the ${R(NOUN)} gently into the mixture. Do not make eye contact.`
+  ])
+};
+const TEXT_MODES=['joke','joke','joke','madlib','madlib','autocorrect','autocorrect','keysmash','system','prophecy','corporate','subtitle','wrongnum','broadcast'];
+const SAFE_MODES=TEXT_MODES.filter(m=>m!=='autocorrect');
+
+/* LEAK GUARD — the one thing that must never happen is the real
+   message arriving. Reject any output that keeps three of your
+   words in a row, and try again with a mode that ignores input. */
+function leaks(src,out){
+  const a=src.toLowerCase().replace(/[^\w\s]/g,'').split(/\s+/).filter(Boolean);
+  const b=' '+out.toLowerCase().replace(/[^\w\s]/g,'')+' ';
+  if(a.length<3) return b.trim()===a.join(' ');
+  for(let i=0;i+2<a.length;i++) if(b.includes(' '+a.slice(i,i+3).join(' ')+' ')) return true;
+  return false;
+}
+function makeText(src){
+  const short=src.split(/\s+/).length<6;
+  for(let n=0;n<6;n++){
+    const mode=R(short?SAFE_MODES:TEXT_MODES);
+    const out=GEN[mode](src);
+    if(!leaks(src,out)) return out;
+  }
+  return GEN.joke(src);
+}
+
+/* =========================================================
+   3. MEDIA GENERATORS
+   ========================================================= */
+const GIF_BG=[
+ 'linear-gradient(135deg,#ff2e63,#ff9a00,#ffd93d)','linear-gradient(135deg,#00c6ff,#0072ff,#7b2ff7)',
+ 'linear-gradient(135deg,#11998e,#38ef7d,#f9f871)','linear-gradient(135deg,#f857a6,#ff5858,#ffc300)',
+ 'linear-gradient(135deg,#4b134f,#c94b4b,#f5af19)','linear-gradient(135deg,#000428,#004e92,#00c9a7)',
+ 'linear-gradient(135deg,#8e2de2,#4a00e0,#ff6ec4)','linear-gradient(135deg,#f7971e,#ffd200,#21d4fd)'];
+const ANIMS=['a-wob','a-spin','a-boing','a-shake','a-thump','a-swing','a-slide'];
+const CAPS=[
+ ['when the','goose knows'],['nobody:','me at 3am'],['me explaining','the ferret thing'],
+ ['pov:','you opened the shed'],['my landlord','after the incident'],['day 9','of the beige diet'],
+ ['the council','has been notified'],['me','pretending to understand'],
+ ['live footage','of the tribunal'],['everyone at','the garden centre'],['not now','i am working'],
+ ['this is fine','it is not fine'],['bold of you','to open this'],['sir','this is a wendys'],
+ ['me leaving','the aquarium'],['friday','vs monday'],['the bins','know'],['final warning','from gary'],
+ ['emotional damage','tuesday edition'],['certified','hedge behaviour'],['no thoughts','only meatball'],
+ ['when she says','she likes forklifts'],['stop','the vicar is here'],['average','pelican enjoyer']];
+
+function gifSpec(){
+  const c=R(CAPS);
+  return {kind:'gif',emoji:R(SUBJ),top:c[0],bottom:c[1],bg:Math.floor(Math.random()*GIF_BG.length),
+          anim:R(ANIMS),conf:[R(SUBJ),R(SUBJ),R(SUBJ)]};
+}
+function emojiWall(){
+  const set=R(EMO_SETS), n=2+Math.floor(Math.random()*5);
+  return {kind:'emoji',text:Array.from({length:n},()=>R(set)).join('')};
+}
+function stickerSpec(){ return {kind:'sticker',emoji:R(SUBJ)}; }
+function voiceSpec(){
+  return {kind:'voice',dur:'0:'+String(4+Math.floor(Math.random()*55)).padStart(2,'0'),
+          bars:Array.from({length:26},()=>4+Math.floor(Math.random()*20))};
+}
+
+/* =========================================================
+   4. THE SCRAMBLER — picks a lane, then a flavour
+   ========================================================= */
+function scramble(src){
+  const t=src.trim(), roll=Math.random();
+  if(roll<0.13) return gifSpec();
+  if(roll<0.20) return emojiWall();
+  if(roll<0.25) return stickerSpec();
+  if(roll<0.29) return voiceSpec();
+
+  let text=makeText(t);
+  // second thought, tacked on
+  if(t.split(/\s+/).length>12 && chance(0.55)) text+=' '+GEN[R(['madlib','joke','subtitle','prophecy'])](t);
+  // emoji garnish
+  if(chance(0.45)){ const set=R(EMO_SETS); text+=' '+R(set)+(chance(0.35)?R(set):''); }
+  if(chance(0.12)) text=R(EMO_SETS[Math.floor(Math.random()*EMO_SETS.length)])+' '+text;
+  // inherit the shape of what you typed
+  if(/\?\s*$/.test(t)&&!/\?/.test(text)) text=text.replace(/[.!]+$/,'')+'?';
+  if(t.length>3&&t===t.toUpperCase()&&/[A-Z]/.test(t)) text=text.toUpperCase();
+  if(/!{2,}/.test(t)) text=text.replace(/[.?]*$/,'')+'!!';
+  return {kind:'text',text};
+}
+
+/* =========================================================
+   5. Rendering
    ========================================================= */
 const chat=document.getElementById('chat'), input=document.getElementById('input'),
       presence=document.getElementById('presence'), peerNameEl=document.getElementById('peerName'),
       avatar=document.getElementById('avatar'), toastEl=document.getElementById('toast');
-let theirView=false, live=false, lastOut=null;
-
+let live=false;
 const now=()=>new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}).replace(/^0/,'');
 
-function face(kind,text,side,locked){
+function body(p){
   const el=document.createElement('div');
-  el.className='face '+kind+(locked?' locked':'');
-  const t=document.createElement('div'); t.className='txt'; t.textContent=text;
-  const m=document.createElement('div'); m.className='meta';
-  m.innerHTML='<span>'+now()+'</span>'+(side==='out'?'<span class="tick">✓✓</span>':'');
-  el.append(t,m); return el;
+  if(p.kind==='gif'){
+    el.className='media bgmove'; el.style.background=GIF_BG[p.bg%GIF_BG.length]; el.style.backgroundSize='400% 400%';
+    p.conf.forEach((e,i)=>{
+      const c=document.createElement('span'); c.className='conf'; c.textContent=e;
+      c.style.left=(12+i*34)+'%'; c.style.animationDelay=(i*0.9)+'s'; el.appendChild(c);
+    });
+    const s=document.createElement('div'); s.className='subj '+p.anim; s.textContent=p.emoji; el.appendChild(s);
+    const t=document.createElement('div'); t.className='cap top'; t.textContent=p.top; el.appendChild(t);
+    const b=document.createElement('div'); b.className='cap bot'; b.textContent=p.bottom; el.appendChild(b);
+    const g=document.createElement('div'); g.className='badge'; g.textContent='GIF'; el.appendChild(g);
+  } else if(p.kind==='sticker'){
+    el.className='sticker'; el.textContent=p.emoji;
+  } else if(p.kind==='emoji'){
+    el.className='txt big'; el.textContent=p.text;
+  } else if(p.kind==='voice'){
+    el.className='voice';
+    el.innerHTML='<div class="play">▶</div><div class="wave">'+
+      p.bars.map(h=>'<i style="height:'+h+'px"></i>').join('')+'</div><div class="dur">'+p.dur+'</div>';
+    el.onclick=()=>toast('It is 100% silence. Every time.');
+  } else {
+    el.className='txt'; el.textContent=p.text;
+  }
+  return el;
 }
 
-/* front = what this phone shows. back = the other side of the story. */
-function addMessage(side,front,back,lockedBack){
+function addMessage(side,p){
   const row=document.createElement('div'); row.className='row '+side;
   const b=document.createElement('div');
-  b.className='bubble'+(theirView?' flip':'');
-  b.dataset.flipped=theirView?'1':'0';
-  b.append(face('front',front,side), face('back',back,side,lockedBack));
-  b.onclick=()=>{const f=b.dataset.flipped==='1'; b.dataset.flipped=f?'0':'1'; b.classList.toggle('flip',!f);};
-  row.append(b); chat.append(row); chat.scrollTop=chat.scrollHeight;
-  if(side==='out') lastOut=b;
+  b.className='bubble'+(p.kind==='sticker'?' plain':'')+(p.kind==='gif'?' media-b':'');
+  b.appendChild(body(p));
+  if(p.kind!=='sticker'){
+    const m=document.createElement('div'); m.className='meta';
+    m.innerHTML='<span>'+now()+'</span>'+(side==='out'?'<span class="tick">✓✓</span>':'');
+    b.appendChild(m);
+  }
+  row.appendChild(b); chat.appendChild(row); chat.scrollTop=chat.scrollHeight;
   return b;
-}
-
-document.getElementById('flipper').onclick=()=>setView(!theirView);
-function setView(v){
-  theirView=v;
-  document.getElementById('lblYou').classList.toggle('on',!v);
-  document.getElementById('lblThem').classList.toggle('on',v);
-  document.querySelectorAll('.bubble').forEach(b=>{b.dataset.flipped=v?'1':'0';b.classList.toggle('flip',v)});
 }
 
 let typingRow=null;
@@ -495,142 +555,127 @@ function showTyping(){
   if(typingRow) return;
   presence.textContent='typing…';
   typingRow=document.createElement('div'); typingRow.className='row in typing';
-  typingRow.innerHTML='<div class="bubble"><div class="face front"><div class="dots"><i></i><i></i><i></i></div></div></div>';
-  chat.append(typingRow); chat.scrollTop=chat.scrollHeight;
+  typingRow.innerHTML='<div class="bubble"><div class="dots"><i></i><i></i><i></i></div></div>';
+  chat.appendChild(typingRow); chat.scrollTop=chat.scrollHeight;
 }
-function hideTyping(){ presence.textContent=live?'online':'online'; typingRow?.remove(); typingRow=null; }
-
-function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),1800); }
+function hideTyping(){ presence.textContent='online'; typingRow?.remove(); typingRow=null; }
+function toast(m){ toastEl.textContent=m; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),1900); }
 
 /* =========================================================
-   3. Solo mode — a bot having a difficult afternoon
+   6. Solo bot
    ========================================================= */
-const BOT=['what','lol what are you on about','is this a bit? are we doing a bit',
- 'mate you\'re scaring me a bit','have you been hacked, blink twice','right, I\'m ringing your mum',
- 'I googled that phrase and now I\'m concerned','please just type one normal sentence',
- 'I\'m outside your flat and your lights are off','hang on. say the goose thing again',
- 'ohhhh. OH. it makes sense now','I\'ve told Sarah we\'re not coming to dinner',
- 'yes. YES. finally someone gets it','meet me at the usual place. bring the ferret'];
+const BOT=['what','lol what are you on about','is this a bit? are we doing a bit','mate you\'re scaring me a bit',
+ 'have you been hacked, blink twice','right, I\'m ringing your mum','I googled that and now I\'m concerned',
+ 'please just type one normal sentence','I\'m outside your flat and your lights are off','hang on. say the goose thing again',
+ 'ohhhh. OH. it makes sense now','I\'ve told Sarah we\'re not coming to dinner','yes. YES. finally someone gets it',
+ 'meet me at the usual place. bring the ferret'];
 let botIdx=0;
 function botReplies(){
-  setTimeout(()=>{
-    showTyping();
-    setTimeout(()=>{
-      hideTyping();
-      const typed = botIdx<BOT.length ? BOT[botIdx++] : draw('def');
-      addMessage('in', scramble(typed), typed);
-    }, 900+Math.random()*1300);
-  }, 450+Math.random()*600);
+  setTimeout(()=>{ showTyping();
+    setTimeout(()=>{ hideTyping();
+      addMessage('in', scramble(botIdx<BOT.length?BOT[botIdx++]:draw('def')));
+    },900+Math.random()*1300);
+  },450+Math.random()*600);
 }
 
 /* =========================================================
-   4. Live mode — two real phones, one room code
-   Only the scrambled text is ever published.
+   7. Live rooms — only the scrambled payload is transmitted
    ========================================================= */
 const BROKERS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'];
-let client=null, topic='', me='', myName='', peer='Them', room='';
-
-function connect(code, name, onReady, onFail){
-  room=code; myName=name; me=Math.random().toString(36).slice(2,10);
-  topic='lost-in-transit/'+code;
+let client=null,topic='',me='',myName='',peer='Them',room='';
+function connect(code,name,onReady,onFail){
+  room=code; myName=name; me=Math.random().toString(36).slice(2,10); topic='lost-in-transit/'+code;
   let i=0;
-  const tryNext=()=>{
-    if(i>=BROKERS.length){ onFail('Could not reach a broker. Check your connection or try again.'); return; }
-    const url=BROKERS[i++];
-    onReady.status && onReady.status('Connecting…');
-    const c=mqtt.connect(url,{clientId:'lit_'+me,connectTimeout:6000,reconnectPeriod:0,clean:true});
-    const timer=setTimeout(()=>{try{c.end(true)}catch(e){}; tryNext();},7000);
-    c.on('connect',()=>{
-      clearTimeout(timer); client=c;
-      c.subscribe(topic,{qos:0},()=>{
-        pub({t:'hello',name:myName});
-        onReady();
-      });
-    });
-    c.on('error',()=>{clearTimeout(timer);try{c.end(true)}catch(e){}; tryNext();});
+  (function tryNext(){
+    if(i>=BROKERS.length){ onFail('Could not reach a broker. Check your connection and try again.'); return; }
+    const c=mqtt.connect(BROKERS[i++],{clientId:'lit_'+me,connectTimeout:6000,reconnectPeriod:0,clean:true});
+    const timer=setTimeout(()=>{try{c.end(true)}catch(e){} tryNext();},7000);
+    c.on('connect',()=>{ clearTimeout(timer); client=c;
+      c.subscribe(topic,{qos:0},()=>{ pub({t:'hello',name:myName}); onReady(); }); });
+    c.on('error',()=>{ clearTimeout(timer); try{c.end(true)}catch(e){} tryNext(); });
     c.on('message',(_,payload)=>{
-      let m; try{m=JSON.parse(payload.toString())}catch(e){return}
+      let m; try{ m=JSON.parse(payload.toString()) }catch(e){ return }
       if(!m||m.from===me) return;
       if(m.t==='hello'){ peer=m.name||'Them'; setPeer(peer); pub({t:'hi',name:myName}); toast(peer+' joined'); }
       else if(m.t==='hi'){ peer=m.name||'Them'; setPeer(peer); }
       else if(m.t==='typing'){ showTyping(); clearTimeout(window._tt); window._tt=setTimeout(hideTyping,2500); }
-      else if(m.t==='msg'){ hideTyping(); addMessage('in', m.text, 'Only '+peer+' knows what they actually typed.', true); }
+      else if(m.t==='msg'){ hideTyping(); addMessage('in',m.p); }
       else if(m.t==='bye'){ toast(peer+' left'); presence.textContent='last seen just now'; }
     });
-  };
-  tryNext();
+  })();
 }
-function pub(o){ if(client) client.publish(topic, JSON.stringify(Object.assign({from:me},o)), {qos:0}); }
+function pub(o){ if(client) client.publish(topic,JSON.stringify(Object.assign({from:me},o)),{qos:0}); }
 function setPeer(n){ peerNameEl.textContent=n; avatar.textContent=(n[0]||'?').toUpperCase(); presence.textContent='online'; }
 
 /* =========================================================
-   5. Sending
+   8. Sending
    ========================================================= */
-let lastTypingPing=0;
+let lastPing=0;
 function send(){
   const text=input.value.trim(); if(!text) return;
-  const sent=scramble(text);
-  addMessage('out', text, sent);
+  const p=scramble(text);
+  addMessage('out',{kind:'text',text});      // you always see exactly what you typed
   input.value=''; input.style.height='auto';
-  if(live) pub({t:'msg',text:sent}); else botReplies();
+  if(live) pub({t:'msg',p}); else botReplies();
 }
 document.getElementById('send').onclick=send;
-input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
+input.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); } });
 input.addEventListener('input',()=>{
   input.style.height='auto'; input.style.height=Math.min(88,input.scrollHeight)+'px';
-  if(live && Date.now()-lastTypingPing>1800){ lastTypingPing=Date.now(); pub({t:'typing'}); }
+  if(live&&Date.now()-lastPing>1800){ lastPing=Date.now(); pub({t:'typing'}); }
 });
-
-/* invite link */
 document.getElementById('invite').onclick=()=>{
   if(!live){ toast('Solo mode — no room to share'); return; }
   const url=location.origin+location.pathname+'?room='+room;
   navigator.clipboard?.writeText(url).then(()=>toast('Invite link copied'),()=>toast(url));
 };
 document.getElementById('leave').onclick=()=>{
-  if(live){ pub({t:'bye'}); try{client.end()}catch(e){} client=null; live=false; }
+  if(live){ pub({t:'bye'}); try{client.end()}catch(e){} }
   location.href=location.origin+location.pathname;
 };
 
 /* =========================================================
-   6. Lobby
+   9. Lobby
    ========================================================= */
 const lobby=document.getElementById('lobby'), lobbyStatus=document.getElementById('lobbyStatus'),
       codeIn=document.getElementById('code'), nameIn=document.getElementById('name');
-const randCode=()=>{let s='';for(let i=0;i<4;i++)s+='ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random()*24)];return s};
-
-function enterChat(mode){
-  lobby.classList.add('hide');
-  document.getElementById('notice').textContent = mode==='live'
-    ? 'Only the scrambled version leaves your phone. Tap your own bubbles to see what they got.'
-    : 'Scrambled in transit. Tap any bubble to see the other side.';
-  input.focus();
-}
+const randCode=()=>{ let s=''; for(let i=0;i<4;i++) s+='ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random()*24)]; return s; };
+const store={ get(k){ try{return localStorage.getItem(k)}catch(e){return null} },
+              set(k,v){ try{localStorage.setItem(k,v)}catch(e){} } };
+function enterChat(){ lobby.classList.add('hide'); input.focus(); }
 function go(code){
   const name=(nameIn.value.trim()||'Anonymous Goose').slice(0,18);
+  store.set('lit_name',name); store.set('lit_room',code);
   lobbyStatus.textContent='Connecting…';
-  connect(code,name,Object.assign(()=>{
-    live=true; setPeer('Waiting…'); presence.textContent='waiting for someone to join…';
-    peerNameEl.textContent='Room '+code; avatar.textContent=code[0];
-    enterChat('live'); toast('Room '+code+' — tap 🔗 to share');
-  },{status:s=>lobbyStatus.textContent=s}), err=>{ lobbyStatus.textContent=err; });
+  connect(code,name,()=>{
+    live=true; peerNameEl.textContent='Room '+code; avatar.textContent=code[0];
+    presence.textContent='waiting for someone to join…';
+    enterChat(); toast('Room '+code+' — tap 🔗 to share');
+  },err=>{ lobbyStatus.textContent=err; });
 }
-document.getElementById('newBtn').onclick=()=>{const c=randCode(); codeIn.value=c; go(c);};
+document.getElementById('newBtn').onclick=()=>{ const c=randCode(); codeIn.value=c; go(c); };
 document.getElementById('joinBtn').onclick=()=>{
   const c=codeIn.value.trim().toUpperCase();
   if(c.length<3){ lobbyStatus.textContent='Enter the code your friend sent you.'; codeIn.focus(); return; }
   go(c);
 };
 document.getElementById('soloBtn').onclick=()=>{
-  live=false; setPeer('Dave'); enterChat('solo');
-  setTimeout(()=>{const typed='yo you free tonight?'; addMessage('in', scramble(typed), typed);},400);
+  live=false; setPeer('Dave'); enterChat();
+  setTimeout(()=>addMessage('in',scramble('yo you free tonight?')),400);
 };
 
-/* deep link: ?room=ABCD skips straight in */
-const qs=new URLSearchParams(location.search).get('room');
+nameIn.value=store.get('lit_name')||'';
+const qs=new URLSearchParams(location.search).get('room'), lastRoom=store.get('lit_room');
 if(qs){ codeIn.value=qs.toUpperCase(); lobbyStatus.textContent='Room '+qs.toUpperCase()+' — add your name and hit Join.'; }
+else if(lastRoom){ codeIn.value=lastRoom; lobbyStatus.textContent='Last room was '+lastRoom+'.'; }
 
-/* clock */
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+if(isIOS&&!standalone){
+  const tip=document.createElement('div'); tip.className='hint';
+  tip.style.cssText='margin-top:10px;color:var(--notice-fg)';
+  tip.textContent='Tip: tap Share → Add to Home Screen to run it fullscreen, with no address bar.';
+  document.querySelector('.hint').before(tip);
+}
 const clock=()=>document.getElementById('clock').textContent=now();
 clock(); setInterval(clock,20000);
 </script>
