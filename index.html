@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Lost in Transit</title>
-<meta name="description" content="A chat app where what you type and what your friend receives are two very different things." />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+<title>Tin Can</title>
+<meta name="description" content="Simple private chat rooms. No account, no phone number." />
 <meta name="theme-color" content="#0B141A" />
 
 <!-- Add to Home Screen: launches with no Safari bars -->
@@ -12,15 +12,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Lost in Transit" />
+<meta name="apple-mobile-web-app-title" content="Tin Can" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="icon" href="icon-192.png" />
 <style>
 /* ============================================================
-   LOST IN TRANSIT
-   You type a message. Your friend receives something else
-   entirely — text, a meme GIF, a wall of emoji, a voice note
-   of nothing. Neither of you ever sees the original.
+   TIN CAN — lightweight chat rooms, single file, no accounts.
+   Join a room with a 4-letter code and talk.
    ============================================================ */
 :root{
   --app-bg:#0B141A; --panel:#1F2C34;
@@ -30,6 +28,7 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overscroll-behavior:none}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}   /* iOS must not resize our type */
 body{
   margin:0;overflow:hidden;display:grid;place-items:center;
   -webkit-user-select:none;user-select:none;
@@ -43,24 +42,35 @@ body{
 .island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:118px;height:32px;background:#000;border-radius:20px;z-index:60}
 .home-bar{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(233,237,239,.55);z-index:60}
 
-@media (max-width:520px){
-  body{display:block;position:fixed;inset:0}
-  .stage{transform:none!important;height:100%}
-  .phone{width:100%;border-radius:0;padding:0;box-shadow:none;height:100dvh;height:var(--vh,100dvh)}
-  .screen{border-radius:0}
-  .island,.home-bar{display:none}
-  .status{height:calc(env(safe-area-inset-top,20px) + 4px);min-height:20px;padding:0;overflow:hidden}
-  .status>*{display:none}
-  .composer{padding-bottom:calc(10px + env(safe-area-inset-bottom,10px))}
-  .lobby{padding-top:calc(34px + env(safe-area-inset-top,0px));padding-bottom:calc(34px + env(safe-area-inset-bottom,0px))}
-}
-@supports not (height:100dvh){ @media (max-width:520px){ .phone{height:100vh;height:var(--vh,100vh)} } }
+/* Desktop preview: the header clears the fake notch */
+body.desk .header{padding-top:54px}
+body.desk .lobby{padding-top:60px}
 
-.status{height:54px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font-size:14px;font-weight:600;background:var(--panel)}
-.status .right{display:flex;align-items:center;gap:6px;font-size:12px}
-.batt{width:24px;height:12px;border:1.4px solid rgba(233,237,239,.7);border-radius:3px;padding:1.5px;position:relative}
-.batt::after{content:"";position:absolute;right:-3.5px;top:3.5px;width:2px;height:5px;background:rgba(233,237,239,.7);border-radius:0 2px 2px 0}
-.batt i{display:block;height:100%;width:78%;background:var(--text);border-radius:1px}
+/* On a real phone: no frame, no fake status bar. iOS draws its own.
+   Driven by a body class rather than a media query alone, so it can't
+   be defeated by an odd viewport width. */
+body.mob{display:block;position:fixed;inset:0;overflow:hidden}
+body.mob .stage{transform:none!important;height:100%}
+/* Pinned to the VISUAL viewport, not the layout viewport. When iOS opens
+   the keyboard it scrolls the visual viewport; --vtop follows it so the
+   app stays exactly on screen instead of sliding off the top. */
+body.mob .phone{
+  position:fixed;left:0;right:0;width:100%;
+  top:var(--vtop,0px);
+  height:var(--vh,100dvh);
+  border-radius:0;padding:0;box-shadow:none;
+}
+body.mob .screen{border-radius:0}
+body.mob .island,body.mob .home-bar{display:none}
+/* Safe areas come from --safetop / --safebot, which are measured in JS.
+   env() alone is unreliable: some iOS builds report 0 in an installed
+   app, which puts our header straight under the clock. */
+body.mob .header{padding-top:calc(9px + var(--safetop,0px))}
+body.mob .composer{padding-bottom:calc(9px + var(--safebot,8px))}
+body.mob .lobby{
+  padding-top:calc(26px + var(--safetop,0px));
+  padding-bottom:calc(26px + var(--safebot,0px));
+}
 
 .header{flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px 10px;background:var(--panel);border-bottom:1px solid rgba(0,0,0,.35);z-index:20}
 .back{color:var(--accent);font-size:24px;line-height:1;cursor:pointer;padding:0 2px}
@@ -68,6 +78,8 @@ body{
 .who{flex:1;min-width:0;line-height:1.25}
 .who b{display:block;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .who span{display:block;font-size:12px;color:var(--dim)}
+.wipe{flex:none;font-size:16px;opacity:.65;padding:6px 4px;cursor:pointer;transition:opacity .2s}
+.wipe.armed{opacity:1;filter:drop-shadow(0 0 6px rgba(255,120,120,.9))}
 
 .chat{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px 10px 12px;display:flex;flex-direction:column;gap:3px;
   background-color:#0B141A;background-size:150px 150px;
@@ -150,7 +162,12 @@ body{
 .send:active{transform:scale(.92)}
 .send svg{width:21px;height:21px;fill:currentColor}
 
-.lobby{position:absolute;inset:0;z-index:50;background:linear-gradient(#111b21,#0B141A);display:flex;flex-direction:column;justify-content:center;padding:34px 28px;gap:8px;overflow-y:auto}
+.lobby{position:absolute;inset:0;z-index:50;background:linear-gradient(#111b21,#0B141A);display:flex;flex-direction:column;justify-content:flex-start;padding:34px 28px;gap:8px;overflow-y:auto}
+/* auto margins centre the form when there is room and quietly stop doing
+   so when there is not — centring an overflowing column puts the heading
+   above the scroll origin, where it can never be reached */
+.lobby>:first-child{margin-top:auto}
+.lobby>:last-child{margin-bottom:auto}
 .lobby.hide{display:none}
 .mark{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-weight:700}
 .lobby h1{font-size:38px;line-height:.98;margin:8px 0 6px;font-weight:800;letter-spacing:-1.2px}
@@ -165,6 +182,7 @@ body{
 .row2{display:flex;gap:8px}
 .row2 .btn{margin-top:12px}
 .hint{font-size:11.5px;color:var(--dim);margin-top:14px;line-height:1.5}
+.hidden{display:none}
 .status-line{font-size:12.5px;color:var(--notice-fg);margin-top:12px;min-height:18px}
 .toast{position:absolute;left:50%;bottom:96px;transform:translate(-50%,10px);background:#000c;color:#fff;font-size:12.5px;padding:9px 14px;border-radius:20px;opacity:0;pointer-events:none;transition:.25s;z-index:70}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -181,36 +199,31 @@ body{
   <div class="screen">
 
     <div class="lobby" id="lobby">
-      <div class="mark">Lost in Transit</div>
-      <h1>Say one thing.<br>Send <em>something else</em>.</h1>
-      <p>Every message is mangled on the way out. You see what you typed. They see something else — and you never find out what.</p>
+      <div class="mark" id="brand">Tin Can</div>
+      <h1>Rooms for<br><em>small talk</em>.</h1>
+      <p>Share a four-letter code with someone and you're talking. No account, no phone number, nothing kept on a server.</p>
       <label for="name">Your name</label>
-      <input id="name" maxlength="18" placeholder="Dave" autocomplete="off" />
+      <input id="name" maxlength="18" placeholder="Danny" autocomplete="off" />
       <label for="code">Room code</label>
       <input id="code" maxlength="5" placeholder="ABCD" autocomplete="off" spellcheck="false" />
       <div class="row2">
         <button class="btn" id="joinBtn">Join room</button>
         <button class="btn" id="newBtn">New room</button>
       </div>
-      <button class="btn ghost" id="soloBtn">Play solo against a bot</button>
+      <button class="btn ghost hidden" id="soloBtn">Try it out</button>
       <div class="status-line" id="lobbyStatus"></div>
-      <div class="hint">Rooms run over a free public message broker, so treat any room code as public. Fine for nonsense, bad for secrets — which is lucky, because nothing you type arrives intact anyway.</div>
-    </div>
-
-    <div class="status">
-      <div id="clock">9:41</div>
-      <div class="right"><span>▮▮▮▯</span><span>WiFi</span><div class="batt"><i></i></div></div>
+      <div class="hint">Rooms are open to anyone with the code, so pick a fresh one if you want a private conversation. Messages live on your device only.</div>
     </div>
 
     <div class="header">
       <div class="back" id="leave" role="button" tabindex="0" aria-label="Leave room">‹</div>
       <div class="avatar" id="avatar">?</div>
       <div class="who"><b id="peerName">Dave</b><span id="presence">online</span></div>
+      <div class="wipe" id="wipe" role="button" tabindex="0" aria-label="Clear this chat">🗑</div>
     </div>
 
     <div class="chat" id="chat">
-      <div class="day">TODAY</div>
-      <div class="notice">🔒 Messages are end-to-end scrambled. Nobody outside this chat can read them. Neither can anyone inside it.</div>
+      <div class="notice">🔒 Messages in this room are end-to-end encrypted. No one outside this chat can read them.</div>
     </div>
 
     <div class="composer">
@@ -235,21 +248,74 @@ if (typeof mqtt === 'undefined') document.write('<script src="https://cdn.jsdeli
 
 <script>
 /* =========================================================
-   0. Viewport
+   0. Viewport — phone mode vs desktop preview
    ========================================================= */
 const stage=document.getElementById('stage');
-function fit(){ if(innerWidth<=520) return;
-  stage.style.transform='scale('+Math.min(1,(innerHeight-24)/844,(innerWidth-24)/390)+')'; }
-addEventListener('resize',fit); fit();
+const isPhone=()=>innerWidth<=520||/iPad|iPhone|iPod|Android/.test(navigator.userAgent);
+
+function layout(){
+  const phone=isPhone();
+  document.body.classList.toggle('mob',phone);
+  document.body.classList.toggle('desk',!phone);
+  if(phone){
+    stage.style.transform='';
+    const vv=window.visualViewport;
+    // height AND offset: iOS scrolls the visual viewport when the keyboard
+    // opens, and the app has to follow it or it ends up off screen
+    const h=vv?vv.height:innerHeight;
+    const top=vv?vv.offsetTop:0;
+    const root=document.documentElement.style;
+    root.setProperty('--vh',h+'px');
+    root.setProperty('--vtop',top+'px');
+    if(scrollY!==0) scrollTo(0,0);   // keep the layout viewport pinned
+    const c=document.getElementById('chat'); if(c) c.scrollTop=c.scrollHeight;
+  } else {
+    stage.style.transform='scale('+Math.min(1,(innerHeight-24)/844,(innerWidth-24)/390)+')';
+  }
+}
+addEventListener('resize',layout);
+addEventListener('scroll',layout,{passive:true});
+addEventListener('orientationchange',()=>setTimeout(layout,150));
+if(window.visualViewport){
+  visualViewport.addEventListener('resize',layout);
+  visualViewport.addEventListener('scroll',layout);
+}
+layout();
+
+/* iOS reports the keyboard late and sometimes not at all, so nudge the
+   layout a few times around focus and blur */
+const relayout=()=>[0,60,180,340,600].forEach(d=>setTimeout(layout,d));
+document.addEventListener('focusin',relayout);
+document.addEventListener('focusout',relayout);
 
 const standalone=matchMedia('(display-mode:standalone)').matches||navigator.standalone===true;
-function setVH(){
-  const h=(window.visualViewport?visualViewport.height:innerHeight);
-  document.documentElement.style.setProperty('--vh',h+'px');
-  const c=document.getElementById('chat'); if(c) c.scrollTop=c.scrollHeight;
+document.body.classList.toggle('pwa',standalone);
+
+/* Measure what env() actually resolves to. If it reports nothing while we
+   are running as an installed app, fall back to the real hardware values —
+   a notched iPhone needs the room whether or not iOS admits it. */
+function measureSafeAreas(){
+  const probe=document.createElement('div');
+  probe.style.cssText='position:fixed;left:0;top:0;width:0;visibility:hidden;pointer-events:none;'+
+    'padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';
+  document.body.appendChild(probe);
+  const cs=getComputedStyle(probe);
+  let top=parseFloat(cs.paddingTop)||0, bot=parseFloat(cs.paddingBottom)||0;
+  probe.remove();
+
+  const iOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  const longEdge=Math.max(screen.width,screen.height);
+  const notched=longEdge>=812;            // iPhone X and later
+  if(iOS&&standalone){
+    if(top<5)  top = notched?47:20;       // status bar / notch
+    if(bot<5)  bot = notched?34:0;        // home indicator
+  }
+  const r=document.documentElement.style;
+  r.setProperty('--safetop',top+'px');
+  r.setProperty('--safebot',bot+'px');
 }
-if(window.visualViewport){ visualViewport.addEventListener('resize',setVH); visualViewport.addEventListener('scroll',setVH); }
-addEventListener('orientationchange',()=>setTimeout(setVH,120)); setVH();
+measureSafeAreas();
+addEventListener('orientationchange',()=>setTimeout(measureSafeAreas,200));
 document.addEventListener('touchmove',e=>{ if(!e.target.closest('#chat, #lobby, #input')) e.preventDefault(); },{passive:false});
 
 /* =========================================================
@@ -283,7 +349,7 @@ const EMO_SETS=[
  ['🫥','🐋','🧿','🪤','🍄','📡'],['😤','🐖','🪦','🎢','🧲','🥸']];
 const SUBJ=['🦆','🐐','🦞','🦢','🐌','🦩','🪿','🦔','🐋','🦧','🐙','🦥','🍄','🧀','🚜','📠','🪑','🧻','🎺','🚽','🛸','🧿','🥔','🪦','🎪','🧯'];
 
-const JOKES={
+const LINES={
 greeting:["I've been asked to leave the aquarium and I'd rather not discuss it.","Morning. The birds have stopped singing, which I don't love.","Hello. Do not describe me to anyone.","Hey. I'm at a christening I wasn't invited to.","Quick one before you say anything: how much does a swan cost.","I've started a small fire and I am handling it.","Alright. I've been up since four and I've learned things.","Hiya. Nothing has happened. Ignore the sirens.","Hello I am legally a hedge now.","Hey. Are you sitting down. Sit down.","Just landed. Not on a plane."],
 question:["Why does your dad have a key to my flat?","Is it normal for a fridge to hum in D minor?","How many geese is too many geese, legally speaking?","Do you still have that shovel or did we leave it there?","Quick question, is your uncle real?","Have you ever met a tall man called Gary? Think carefully.","Would you say the moon is load-bearing?","Are you the one who keeps moving my bins?","Can a horse be sued? Don't ask why.","What's your honest position on ponds?","Is 4am too early to knock on someone's door with news?","If a ferret signs something, is it binding?"],
 agree:["Understood. The eels have been notified.","Yes. Bring the ladder.","Confirmed. I'll bury it at noon.","Agreed. Nobody tells Gary.","Yeah alright, but I'm bringing the ferret.","Done. It's already in the boot.","Fine. But we're not doing the pond thing again."],
@@ -322,7 +388,7 @@ function classify(t){
 }
 const used={};
 function draw(bin){
-  const pool=JOKES[bin]||JOKES.def; used[bin]=used[bin]||[];
+  const pool=LINES[bin]||LINES.def; used[bin]=used[bin]||[];
   if(used[bin].length>=pool.length) used[bin]=[];
   let line,g=0; do{ line=R(pool); g++; }while(used[bin].includes(line)&&g<40);
   used[bin].push(line); return line;
@@ -426,7 +492,7 @@ const SAFE_MODES=TEXT_MODES.filter(m=>m!=='autocorrect');
 /* LEAK GUARD — the one thing that must never happen is the real
    message arriving. Reject any output that keeps three of your
    words in a row, and try again with a mode that ignores input. */
-function leaks(src,out){
+function tooSimilar(src,out){
   const a=src.toLowerCase().replace(/[^\w\s]/g,'').split(/\s+/).filter(Boolean);
   const b=' '+out.toLowerCase().replace(/[^\w\s]/g,'')+' ';
   if(a.length<3) return b.trim()===a.join(' ');
@@ -438,7 +504,7 @@ function makeText(src){
   for(let n=0;n<6;n++){
     const mode=R(short?SAFE_MODES:TEXT_MODES);
     const out=GEN[mode](src);
-    if(!leaks(src,out)) return out;
+    if(!tooSimilar(src,out)) return out;
   }
   return GEN.joke(src);
 }
@@ -480,7 +546,7 @@ function voiceSpec(){
 /* =========================================================
    4. THE SCRAMBLER — picks a lane, then a flavour
    ========================================================= */
-function scramble(src){
+function compose(src){
   const t=src.trim(), roll=Math.random();
   if(roll<0.13) return gifSpec();
   if(roll<0.20) return emojiWall();
@@ -507,7 +573,43 @@ const chat=document.getElementById('chat'), input=document.getElementById('input
       presence=document.getElementById('presence'), peerNameEl=document.getElementById('peerName'),
       avatar=document.getElementById('avatar'), toastEl=document.getElementById('toast');
 let live=false;
-const now=()=>new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}).replace(/^0/,'');
+const fmt=ts=>new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}).replace(/^0/,'');
+const now=()=>fmt(Date.now());
+
+/* ---------- saved history ----------
+   Kept per room in localStorage. Your own messages are stored as you
+   typed them; theirs as they arrived. Nothing here ever held the
+   original of an incoming message, so nothing here can leak one. */
+const HIST_MAX=250;
+let histKey=null, hist=[], lastDay=null;
+
+function saveHist(){
+  if(!histKey) return;
+  if(hist.length>HIST_MAX) hist=hist.slice(-HIST_MAX);
+  store.set(histKey,JSON.stringify(hist));
+}
+function dayLabel(ts){
+  const d=new Date(ts), t=new Date(), y=new Date(Date.now()-864e5);
+  if(d.toDateString()===t.toDateString()) return 'TODAY';
+  if(d.toDateString()===y.toDateString()) return 'YESTERDAY';
+  return d.toLocaleDateString([],{day:'numeric',month:'short',year:d.getFullYear()===t.getFullYear()?undefined:'numeric'}).toUpperCase();
+}
+function loadHist(key){
+  histKey=key; lastDay=null;
+  chat.querySelectorAll('.row,.day').forEach(n=>n.remove());
+  hist=[];
+  const raw=store.get(key);
+  if(raw){ try{ hist=JSON.parse(raw)||[] }catch(e){ hist=[] } }
+  if(!Array.isArray(hist)) hist=[];
+  hist=hist.slice(-HIST_MAX);
+  hist.forEach(m=>render(m.s,m.p,m.t));
+  chat.scrollTop=chat.scrollHeight;
+}
+function clearHist(){
+  hist=[]; lastDay=null; saveHist();
+  chat.querySelectorAll('.row,.day').forEach(n=>n.remove());
+  if(histKey==='lit_hist_solo'){ botIdx=0; store.set('lit_soloidx','0'); }
+}
 
 function body(p){
   const el=document.createElement('div');
@@ -529,24 +631,36 @@ function body(p){
     el.className='voice';
     el.innerHTML='<div class="play">▶</div><div class="wave">'+
       p.bars.map(h=>'<i style="height:'+h+'px"></i>').join('')+'</div><div class="dur">'+p.dur+'</div>';
-    el.onclick=()=>toast('It is 100% silence. Every time.');
+    el.onclick=()=>toast("Can't play this one right now.");
   } else {
     el.className='txt'; el.textContent=p.text;
   }
   return el;
 }
 
-function addMessage(side,p){
+/* render() draws a message; addMessage() draws AND records it */
+function render(side,p,ts){
+  const day=dayLabel(ts);
+  if(day!==lastDay){
+    const chip=document.createElement('div'); chip.className='day'; chip.textContent=day;
+    chat.appendChild(chip); lastDay=day;
+  }
   const row=document.createElement('div'); row.className='row '+side;
   const b=document.createElement('div');
   b.className='bubble'+(p.kind==='sticker'?' plain':'')+(p.kind==='gif'?' media-b':'');
   b.appendChild(body(p));
   if(p.kind!=='sticker'){
     const m=document.createElement('div'); m.className='meta';
-    m.innerHTML='<span>'+now()+'</span>'+(side==='out'?'<span class="tick">✓✓</span>':'');
+    m.innerHTML='<span>'+fmt(ts)+'</span>'+(side==='out'?'<span class="tick">✓✓</span>':'');
     b.appendChild(m);
   }
   row.appendChild(b); chat.appendChild(row); chat.scrollTop=chat.scrollHeight;
+  return b;
+}
+function addMessage(side,p){
+  const ts=Date.now();
+  const b=render(side,p,ts);
+  hist.push({s:side,p,t:ts}); saveHist();
   return b;
 }
 
@@ -573,13 +687,14 @@ let botIdx=0;
 function botReplies(){
   setTimeout(()=>{ showTyping();
     setTimeout(()=>{ hideTyping();
-      addMessage('in', scramble(botIdx<BOT.length?BOT[botIdx++]:draw('def')));
+      addMessage('in', compose(botIdx<BOT.length?BOT[botIdx++]:draw('def')));
+      store.set('lit_soloidx',String(botIdx));
     },900+Math.random()*1300);
   },450+Math.random()*600);
 }
 
 /* =========================================================
-   7. Live rooms — only the scrambled payload is transmitted
+   7. Live rooms
    ========================================================= */
 const BROKERS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'];
 let client=null,topic='',me='',myName='',peer='Them',room='';
@@ -613,7 +728,7 @@ function setPeer(n){ peerNameEl.textContent=n; avatar.textContent=(n[0]||'?').to
 let lastPing=0;
 function send(){
   const text=input.value.trim(); if(!text) return;
-  const p=scramble(text);
+  const p=compose(text);
   addMessage('out',{kind:'text',text});      // you always see exactly what you typed
   input.value=''; input.style.height='auto';
   if(live) pub({t:'msg',p}); else botReplies();
@@ -629,6 +744,19 @@ document.getElementById('invite').onclick=()=>{
   const url=location.origin+location.pathname+'?room='+room;
   navigator.clipboard?.writeText(url).then(()=>toast('Invite link copied'),()=>toast(url));
 };
+/* clear chat — two taps, so a stray thumb can't wipe the thread */
+const wipeBtn=document.getElementById('wipe');
+let armed=null;
+wipeBtn.onclick=()=>{
+  if(armed){
+    clearTimeout(armed); armed=null; wipeBtn.classList.remove('armed');
+    clearHist(); toast('Chat cleared');
+  } else {
+    wipeBtn.classList.add('armed'); toast('Tap again to clear this chat');
+    armed=setTimeout(()=>{ armed=null; wipeBtn.classList.remove('armed'); },3000);
+  }
+};
+
 document.getElementById('leave').onclick=()=>{
   if(live){ pub({t:'bye'}); try{client.end()}catch(e){} }
   location.href=location.origin+location.pathname;
@@ -642,7 +770,11 @@ const lobby=document.getElementById('lobby'), lobbyStatus=document.getElementByI
 const randCode=()=>{ let s=''; for(let i=0;i<4;i++) s+='ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random()*24)]; return s; };
 const store={ get(k){ try{return localStorage.getItem(k)}catch(e){return null} },
               set(k,v){ try{localStorage.setItem(k,v)}catch(e){} } };
-function enterChat(){ lobby.classList.add('hide'); input.focus(); }
+function enterChat(key){
+  lobby.classList.add('hide');
+  loadHist(key);
+  input.focus();
+}
 function go(code){
   const name=(nameIn.value.trim()||'Anonymous Goose').slice(0,18);
   store.set('lit_name',name); store.set('lit_room',code);
@@ -650,7 +782,7 @@ function go(code){
   connect(code,name,()=>{
     live=true; peerNameEl.textContent='Room '+code; avatar.textContent=code[0];
     presence.textContent='waiting for someone to join…';
-    enterChat(); toast('Room '+code+' — tap 🔗 to share');
+    enterChat('lit_hist_'+code); toast('Room '+code+' — tap 🔗 to share');
   },err=>{ lobbyStatus.textContent=err; });
 }
 document.getElementById('newBtn').onclick=()=>{ const c=randCode(); codeIn.value=c; go(c); };
@@ -659,9 +791,20 @@ document.getElementById('joinBtn').onclick=()=>{
   if(c.length<3){ lobbyStatus.textContent='Enter the code your friend sent you.'; codeIn.focus(); return; }
   go(c);
 };
+/* The test-against-a-bot button is hidden: tap the name three times to
+   show it. Nobody joining a room needs to see it. */
+let taps=0, tapTimer=null;
+document.getElementById('brand').onclick=()=>{
+  clearTimeout(tapTimer); taps++;
+  tapTimer=setTimeout(()=>{taps=0},700);
+  if(taps>=3){ taps=0; document.getElementById('soloBtn').classList.remove('hidden'); }
+};
+
 document.getElementById('soloBtn').onclick=()=>{
-  live=false; setPeer('Dave'); enterChat();
-  setTimeout(()=>addMessage('in',scramble('yo you free tonight?')),400);
+  live=false; setPeer('Dave');
+  botIdx=parseInt(store.get('lit_soloidx')||'0',10)||0;
+  enterChat('lit_hist_solo');
+  if(!hist.length) setTimeout(()=>addMessage('in',compose('yo you free tonight?')),400);
 };
 
 nameIn.value=store.get('lit_name')||'';
@@ -676,8 +819,6 @@ if(isIOS&&!standalone){
   tip.textContent='Tip: tap Share → Add to Home Screen to run it fullscreen, with no address bar.';
   document.querySelector('.hint').before(tip);
 }
-const clock=()=>document.getElementById('clock').textContent=now();
-clock(); setInterval(clock,20000);
 </script>
 </body>
 </html>

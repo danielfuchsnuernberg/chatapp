@@ -1,7 +1,7 @@
 {
-  "name": "Lost in Transit",
-  "short_name": "Transit",
-  "description": "A chat app where what you type and what your friend receives are two different things.",
+  "name": "Tin Can",
+  "short_name": "Tin Can",
+  "description": "Simple private chat rooms. No account, no phone number.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
